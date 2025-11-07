@@ -1,0 +1,170 @@
+local ScreenGui = Instance.new("ScreenGui")
+local Main = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local SliderFrame = Instance.new("Frame")
+local SliderBar = Instance.new("Frame")
+local SliderButton = Instance.new("TextButton")
+local SpeedValue = Instance.new("TextLabel")
+local Minimize = Instance.new("TextButton")
+local Plus = Instance.new("TextButton")
+local Minus = Instance.new("TextButton")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+Main.Name = "Main"
+Main.Parent = ScreenGui
+Main.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Main.BorderSizePixel = 0
+Main.Position = UDim2.new(0.3, 0, 0.3, 0)
+Main.Size = UDim2.new(0, 270, 0, 150)
+Main.Active = true
+Main.Draggable = true
+Main.Visible = true
+Main.BackgroundTransparency = 0.1
+Main.ClipsDescendants = true
+
+Title.Name = "Title"
+Title.Parent = Main
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.Size = UDim2.new(1, 0, 0, 25)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "Speed Controller"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+
+Minimize.Name = "Minimize"
+Minimize.Parent = Title
+Minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Minimize.Position = UDim2.new(0.88, 0, 0, 0)
+Minimize.Size = UDim2.new(0.12, 0, 1, 0)
+Minimize.Font = Enum.Font.SourceSansBold
+Minimize.Text = "-"
+Minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
+Minimize.TextSize = 20
+
+SliderFrame.Name = "SliderFrame"
+SliderFrame.Parent = Main
+SliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SliderFrame.Position = UDim2.new(0.1, 0, 0.35, 0)
+SliderFrame.Size = UDim2.new(0.8, 0, 0.15, 0)
+SliderFrame.BorderSizePixel = 0
+
+SliderBar.Name = "SliderBar"
+SliderBar.Parent = SliderFrame
+SliderBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+SliderBar.Size = UDim2.new(0, 0, 1, 0)
+
+SliderButton.Name = "SliderButton"
+SliderButton.Parent = SliderFrame
+SliderButton.BackgroundTransparency = 1
+SliderButton.Size = UDim2.new(1, 0, 1, 0)
+SliderButton.Text = ""
+
+SpeedValue.Name = "SpeedValue"
+SpeedValue.Parent = Main
+SpeedValue.BackgroundTransparency = 1
+SpeedValue.Position = UDim2.new(0, 0, 0.6, 0)
+SpeedValue.Size = UDim2.new(1, 0, 0, 25)
+SpeedValue.Font = Enum.Font.SourceSansBold
+SpeedValue.Text = "Speed: 16"
+SpeedValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedValue.TextSize = 20
+
+Minus.Name = "Minus"
+Minus.Parent = Main
+Minus.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Minus.Position = UDim2.new(0.1, 0, 0.8, 0)
+Minus.Size = UDim2.new(0, 40, 0, 25)
+Minus.Font = Enum.Font.SourceSansBold
+Minus.Text = "-"
+Minus.TextColor3 = Color3.fromRGB(255, 255, 255)
+Minus.TextSize = 22
+
+Plus.Name = "Plus"
+Plus.Parent = Main
+Plus.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Plus.Position = UDim2.new(0.75, 0, 0.8, 0)
+Plus.Size = UDim2.new(0, 40, 0, 25)
+Plus.Font = Enum.Font.SourceSansBold
+Plus.Text = "+"
+Plus.TextColor3 = Color3.fromRGB(255, 255, 255)
+Plus.TextSize = 22
+
+local dragging = false
+local minSpeed, maxSpeed = 16, 100
+local sliderWidth = SliderFrame.AbsoluteSize.X
+local currentSpeed = 16
+
+local function updateSpeed(percent)
+	currentSpeed = math.floor(minSpeed + (maxSpeed - minSpeed) * percent)
+	SliderBar.Size = UDim2.new(percent, 0, 1, 0)
+	SpeedValue.Text = "Speed: " .. currentSpeed
+	if Humanoid then
+		Humanoid.WalkSpeed = currentSpeed
+	end
+end
+
+local function setSpeed(value)
+	value = math.clamp(value, minSpeed, maxSpeed)
+	currentSpeed = value
+	local percent = (value - minSpeed) / (maxSpeed - minSpeed)
+	updateSpeed(percent)
+end
+
+SliderButton.MouseButton1Down:Connect(function(x)
+	dragging = true
+	local moveCon, releaseCon
+	moveCon = UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+			local pos = math.clamp((input.Position.X - SliderFrame.AbsolutePosition.X) / sliderWidth, 0, 1)
+			updateSpeed(pos)
+		end
+	end)
+	releaseCon = UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+			moveCon:Disconnect()
+			releaseCon:Disconnect()
+		end
+	end)
+end)
+
+Plus.MouseButton1Click:Connect(function()
+	setSpeed(currentSpeed + 1)
+end)
+
+Minus.MouseButton1Click:Connect(function()
+	setSpeed(currentSpeed - 1)
+end)
+
+local minimized = false
+Minimize.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	Main:TweenSize(
+		minimized and UDim2.new(0, 270, 0, 25) or UDim2.new(0, 270, 0, 150),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quad,
+		0.3,
+		true
+	)
+end)
+
+spawn(function()
+	local hue = 0
+	while task.wait(0.02) do
+		hue = (hue + 1) % 360
+		local color = Color3.fromHSV(hue / 360, 1, 1)
+		Main.BackgroundColor3 = color
+		Title.BackgroundColor3 = color
+		SliderBar.BackgroundColor3 = color
+		Minimize.BackgroundColor3 = color
+		Plus.BackgroundColor3 = color
+		Minus.BackgroundColor3 = color
+	end
+end)
